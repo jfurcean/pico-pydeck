@@ -1,14 +1,8 @@
-#####################################################
-#                                                   #
-#           Raspberry Pi Pico Producer              #
-#                                                   #
-#         Developed by Pete Gallagher 2021          #
-#                                                   #
-#####################################################
+# SPDX-FileCopyrightText: 2021 John Furcean
+# SPDX-License-Identifier: MIT
 
-# Author:   Pete Gallagher
-# Version:  1.0
-# Date:     11th February 2021
+# Modified from Pete Gallagher 2021
+# Raspberry Pi Pico Producer
 # Twitter:  https://www.twitter.com/pete_codes
 # Blog:     https://www.petecodes.co.uk
 
@@ -16,368 +10,287 @@
 import time
 import usb_hid
 import board
-
+from analogio import AnalogIn
 from digitalio import DigitalInOut, Direction, Pull
 from adafruit_hid.keyboard import Keyboard
 from adafruit_hid.keycode import Keycode
+from adafruit_hid.consumer_control_code import ConsumerControlCode
+from adafruit_hid.consumer_control import ConsumerControl
 
-# Define Pins
-btn1_Pin = board.GP0
-btn2_Pin = board.GP1
-btn3_Pin = board.GP2
-btn4_Pin = board.GP3
-btn5_Pin = board.GP4
-btn6_Pin = board.GP5
-btn7_Pin = board.GP6
-btn8_Pin = board.GP7
-btn9_Pin = board.GP8
-btn10_Pin = board.GP9
-btn11_Pin = board.GP10
-btn12_Pin = board.GP11
+READ_TIME = 0.01
 
-led1_pin = board.GP13
-led2_pin = board.GP14
-led3_pin = board.GP15
-led4_pin = board.GP16
-led5_pin = board.GP17
-led6_pin = board.GP18
-led7_pin = board.GP19
-led8_pin = board.GP20
-led9_pin = board.GP21
-led10_pin = board.GP22
-led11_pin = board.GP26
-led12_pin = board.GP27
+
+def map_range(x, in_min, in_max, out_min, out_max):
+
+    return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min
+
+
+def update_volume(pot_val, last_position=0, current_volume=0):
+    position = int(map_range(pot_val, 200, 65520, 0, 32))
+
+    if abs(position - last_position) > 1:
+        last_position = position
+        if current_volume < position:
+            while current_volume < position:
+                # Raise volume.
+                print("Volume Up!")
+                consumer_control.send(ConsumerControlCode.VOLUME_INCREMENT)
+                current_volume += 2
+                print(pot_val)
+        elif current_volume > position:
+            while current_volume > position:
+                # Lower volume.
+                print("Volume Down!")
+                consumer_control.send(ConsumerControlCode.VOLUME_DECREMENT)
+                current_volume -= 2
+                print(pot_val)
+
+    return last_position, current_volume
+
+
+# initialize hid device as consumer control
+consumer_control = ConsumerControl(usb_hid.devices)
+
+# initialize potentiometer (pot) wiper connected to GP26_A0
+potentiometer = AnalogIn(board.GP26)
+
+# intialize the read time
+last_read = time.monotonic()
+
+# decrease volume all the way down
+# this allows the volume to be set by the current value of the pot
+for i in range(32):
+    consumer_control.send(ConsumerControlCode.VOLUME_DECREMENT)
+
+
+# initalize volume and last position
+current_volume = 0
+last_position = 0
+
+pot_val = potentiometer.value
+last_position, current_volume = update_volume(pot_val, last_position, current_volume)
+
+
+# Initialize Keybaord
+keyboard = Keyboard(usb_hid.devices)
+
+# Define HID Button Output Actions
+# https://circuitpython.readthedocs.io/projects/hid/en/latest/api.html#adafruit-hid-keycode-keycode
+btn_actions = [
+    {
+        "name": "Scene 1",
+        "held": False,
+        "keycode": (Keycode.SHIFT, Keycode.KEYPAD_ONE),
+        "button": None,
+        "led": None,
+        "type": "scene",
+    },
+    {
+        "name": "Scene 2",
+        "held": False,
+        "keycode": (Keycode.SHIFT, Keycode.KEYPAD_TWO),
+        "button": None,
+        "led": None,
+        "type": "scene",
+    },
+    {
+        "name": "Scene 3",
+        "held": False,
+        "keycode": (Keycode.SHIFT, Keycode.KEYPAD_THREE),
+        "button": None,
+        "led": None,
+        "type": "scene",
+    },
+    {
+        "name": "Scene 4",
+        "held": False,
+        "keycode": (Keycode.SHIFT, Keycode.KEYPAD_FOUR),
+        "button": None,
+        "led": None,
+        "type": "scene",
+    },
+    {
+        "name": "Scene 5",
+        "held": False,
+        "keycode": (Keycode.SHIFT, Keycode.KEYPAD_FIVE),
+        "button": None,
+        "led": None,
+        "type": "scene",
+    },
+    {
+        "name": "Scene 6",
+        "held": False,
+        "keycode": (Keycode.SHIFT, Keycode.KEYPAD_SIX),
+        "button": None,
+        "led": None,
+        "type": "scene",
+    },
+    {
+        "name": "Scene 7",
+        "held": False,
+        "keycode": (Keycode.SHIFT, Keycode.KEYPAD_SEVEN),
+        "button": None,
+        "led": None,
+        "type": "scene",
+    },
+    {
+        "name": "Page UP",
+        "held": False,
+        "keycode": (Keycode.PAGE_UP,),
+        "button": None,
+        "led": None,
+        "type": "hold",
+    },
+    {
+        "name": "Hold Page Down",
+        "held": False,
+        "keycode": (Keycode.PAGE_DOWN,),
+        "button": None,
+        "led": None,
+        "type": "hold",
+    },
+    {
+        "name": "Press Mute Teams",
+        "held": False,
+        "keycode": (Keycode.COMMAND, Keycode.SHIFT, Keycode.M),
+        "button": None,
+        "led": None,
+        "type": "press",
+    },
+    {
+        "name": "Toggle Mute Zoom",
+        "held": False,
+        "keycode": (Keycode.COMMAND, Keycode.SHIFT, Keycode.A),
+        "button": None,
+        "led": None,
+        "type": "toggle",
+    },
+]
+
+
+# Define button pins
+btn_pins = [
+    board.GP0,
+    board.GP1,
+    board.GP2,
+    board.GP3,
+    board.GP4,
+    board.GP5,
+    board.GP6,
+    board.GP7,
+    board.GP8,
+    board.GP9,
+    board.GP10,
+]
+
+# Define led pins
+led_pins = [
+    board.GP11,
+    board.GP12,
+    board.GP13,
+    board.GP14,
+    board.GP16,
+    board.GP17,
+    board.GP18,
+    board.GP19,
+    board.GP20,
+    board.GP21,
+    board.GP22,
+]
 
 # Setup all Buttons as Inputs with PullUps
-btn1 = DigitalInOut(btn1_Pin)
-btn1.direction = Direction.INPUT
-btn1.pull = Pull.UP
+# Setup all LEDs as Outputs
+for i, btn_pin in enumerate(btn_pins):
+    button = DigitalInOut(btn_pin)
+    button.direction = Direction.INPUT
+    button.pull = Pull.UP
+    btn_actions[i]["button"] = button
 
-btn2 = DigitalInOut(btn2_Pin)
-btn2.direction = Direction.INPUT
-btn2.pull = Pull.UP
+    led = DigitalInOut(led_pins[i])
+    led.direction = Direction.OUTPUT
+    btn_actions[i]["led"] = led
 
-btn3 = DigitalInOut(btn3_Pin)
-btn3.direction = Direction.INPUT
-btn3.pull = Pull.UP
+    # snake animation LEDs turning on
+    btn_actions[i]["led"].value = True
+    time.sleep(0.1)
 
-btn4 = DigitalInOut(btn4_Pin)
-btn4.direction = Direction.INPUT
-btn4.pull = Pull.UP
+# snake animation LEDs turning off
+for btn_action in btn_actions:
+    time.sleep(0.1)
+    btn_action["led"].value = False
 
-btn5 = DigitalInOut(btn5_Pin)
-btn5.direction = Direction.INPUT
-btn5.pull = Pull.UP
-
-btn6 = DigitalInOut(btn6_Pin)
-btn6.direction = Direction.INPUT
-btn6.pull = Pull.UP
-
-btn7 = DigitalInOut(btn7_Pin)
-btn7.direction = Direction.INPUT
-btn7.pull = Pull.UP
-
-btn8 = DigitalInOut(btn8_Pin)
-btn8.direction = Direction.INPUT
-btn8.pull = Pull.UP
-
-btn9 = DigitalInOut(btn9_Pin)
-btn9.direction = Direction.INPUT
-btn9.pull = Pull.UP
-
-btn10 = DigitalInOut(btn10_Pin)
-btn10.direction = Direction.INPUT
-btn10.pull = Pull.UP
-
-btn11 = DigitalInOut(btn11_Pin)
-btn11.direction = Direction.INPUT
-btn11.pull = Pull.UP
-
-btn12 = DigitalInOut(btn12_Pin)
-btn12.direction = Direction.INPUT
-btn12.pull = Pull.UP
-
-# Setup LED Pins
-led1 = DigitalInOut(led1_pin)
-led1.direction = Direction.OUTPUT
-
-led2 = DigitalInOut(led2_pin)
-led2.direction = Direction.OUTPUT
-
-led3 = DigitalInOut(led3_pin)
-led3.direction = Direction.OUTPUT
-
-led4 = DigitalInOut(led4_pin)
-led4.direction = Direction.OUTPUT
-
-led5 = DigitalInOut(led5_pin)
-led5.direction = Direction.OUTPUT
-
-led6 = DigitalInOut(led6_pin)
-led6.direction = Direction.OUTPUT
-
-led7 = DigitalInOut(led7_pin)
-led7.direction = Direction.OUTPUT
-
-led8 = DigitalInOut(led8_pin)
-led8.direction = Direction.OUTPUT
-
-led9 = DigitalInOut(led9_pin)
-led9.direction = Direction.OUTPUT
-
-led10 = DigitalInOut(led10_pin)
-led10.direction = Direction.OUTPUT
-
-led11 = DigitalInOut(led11_pin)
-led11.direction = Direction.OUTPUT
-
-led12 = DigitalInOut(led12_pin)
-led12.direction = Direction.OUTPUT
-
-# Define HID Key Outputs
-key_Keypad1=Keycode.KEYPAD_ONE
-key_Keypad2=Keycode.KEYPAD_TWO
-key_Keypad3=Keycode.KEYPAD_THREE
-key_Keypad4=Keycode.KEYPAD_FOUR
-key_Keypad5=Keycode.KEYPAD_FIVE
-key_Keypad6=Keycode.KEYPAD_SIX
-key_Keypad7=Keycode.KEYPAD_SEVEN
-key_Keypad8=Keycode.KEYPAD_EIGHT
-key_Keypad9=Keycode.KEYPAD_NINE
-key_KeypadZero=Keycode.KEYPAD_ZERO
-key_FThirteen=Keycode.F13
-key_FFourteen=Keycode.F14
-
-key_Shift = Keycode.SHIFT
-key_Ctrl = Keycode.CONTROL
-keyboard=Keyboard(usb_hid.devices)
-
-selectedInput = -1
 
 # Loop around and check for key presses
 while True:
 
-    if selectedInput == 1:
-        led1.value = True
-        led2.value = False
-        led3.value = False
-        led4.value = False
-        led5.value = False
-        led6.value = False
-        led7.value = False
-        led8.value = False
-        led9.value = False
-        led10.value = False
-        led11.value = False
-        led12.value = False
-    elif selectedInput == 2:
-        led1.value = False
-        led2.value = True
-        led3.value = False
-        led4.value = False
-        led5.value = False
-        led6.value = False
-        led7.value = False
-        led8.value = False
-        led9.value = False
-        led10.value = False
-        led11.value = False
-        led12.value = False
-    elif selectedInput == 3:
-        led1.value = False
-        led2.value = False
-        led3.value = True
-        led4.value = False
-        led5.value = False
-        led6.value = False
-        led7.value = False
-        led8.value = False
-        led9.value = False
-        led10.value = False
-        led11.value = False
-        led12.value = False
-    elif selectedInput == 4:
-        led1.value = False
-        led2.value = False
-        led3.value = False
-        led4.value = True
-        led5.value = False
-        led6.value = False
-        led7.value = False
-        led8.value = False
-        led9.value = False
-        led10.value = False
-        led11.value = False
-        led12.value = False
-    elif selectedInput == 5:
-        led1.value = False
-        led2.value = False
-        led3.value = False
-        led4.value = False
-        led5.value = True
-        led6.value = False
-        led7.value = False
-        led8.value = False
-        led9.value = False
-        led10.value = False
-        led11.value = False
-        led12.value = False
-    elif selectedInput == 6:
-        led1.value = False
-        led2.value = False
-        led3.value = False
-        led4.value = False
-        led5.value = False
-        led6.value = True
-        led7.value = False
-        led8.value = False
-        led9.value = False
-        led10.value = False
-        led11.value = False
-        led12.value = False
-    elif selectedInput == 7:
-        led1.value = False
-        led2.value = False
-        led3.value = False
-        led4.value = False
-        led5.value = False
-        led6.value = False
-        led7.value = True
-        led8.value = False
-        led9.value = False
-        led10.value = False
-        led11.value = False
-        led12.value = False
-    elif selectedInput == 8:
-        led1.value = False
-        led2.value = False
-        led3.value = False
-        led4.value = False
-        led5.value = False
-        led6.value = False
-        led7.value = False
-        led8.value = True
-        led9.value = False
-        led10.value = False
-        led11.value = False
-        led12.value = False
-    elif selectedInput == 9:
-        led1.value = False
-        led2.value = False
-        led3.value = False
-        led4.value = False
-        led5.value = False
-        led6.value = False
-        led7.value = False
-        led8.value = False
-        led9.value = True
-        led10.value = False
-        led11.value = False
-        led12.value = False
-    elif selectedInput == 10:
-        led1.value = False
-        led2.value = False
-        led3.value = False
-        led4.value = False
-        led5.value = False
-        led6.value = False
-        led7.value = False
-        led8.value = False
-        led9.value = False
-        led10.value = True
-        led11.value = False
-        led12.value = False
-    elif selectedInput == 11:
-        led1.value = False
-        led2.value = False
-        led3.value = False
-        led4.value = False
-        led5.value = False
-        led6.value = False
-        led7.value = False
-        led8.value = False
-        led9.value = False
-        led10.value = False
-        led11.value = True
-        led12.value = False
-    elif selectedInput == 12:
-        led1.value = False
-        led2.value = False
-        led3.value = False
-        led4.value = False
-        led5.value = False
-        led6.value = False
-        led7.value = False
-        led8.value = False
-        led9.value = False
-        led10.value = False
-        led11.value = False
-        led12.value = True
-    else:
-        pass
- 
-    if not btn1.value:
-        keyboard.press(key_Ctrl, key_Keypad1)
-        time.sleep(0.1) 
-        keyboard.release(key_Ctrl, key_Keypad1)
-        selectedInput = 1
-    elif not btn2.value:
-        keyboard.press(key_Ctrl, key_Keypad2)
-        time.sleep(0.1) 
-        keyboard.release(key_Ctrl, key_Keypad2)
-        selectedInput = 2
-    elif not btn3.value:
-        keyboard.press(key_Ctrl, key_Keypad3)
-        time.sleep(0.1) 
-        keyboard.release(key_Ctrl, key_Keypad3)
-        selectedInput = 3
-    elif not btn4.value:
-        keyboard.press(key_Ctrl, key_Keypad4)
-        time.sleep(0.1) 
-        keyboard.release(key_Ctrl, key_Keypad4)
-        selectedInput = 4
-    elif not btn5.value:
-        keyboard.press(key_Ctrl, key_Keypad5)
-        time.sleep(0.1) 
-        keyboard.release(key_Ctrl, key_Keypad5)
-        selectedInput = 5
-    elif not btn6.value:
-        keyboard.press(key_Ctrl, key_Keypad6)
-        time.sleep(0.1) 
-        keyboard.release(key_Ctrl, key_Keypad6)
-        selectedInput = 6
-    elif not btn7.value:
-        keyboard.press(key_Ctrl, key_Keypad7)
-        time.sleep(0.1) 
-        keyboard.release(key_Ctrl, key_Keypad7)
-        selectedInput = 7
-    elif not btn8.value:
-        keyboard.press(key_Ctrl, key_Keypad8)
-        time.sleep(0.1) 
-        keyboard.release(key_Ctrl, key_Keypad8)
-        selectedInput = 8
-    elif not btn9.value:
-        keyboard.press(key_Ctrl, key_Keypad9)
-        time.sleep(0.1) 
-        keyboard.release(key_Ctrl, key_Keypad9)
-        selectedInput = 9
-    elif not btn10.value:
-        keyboard.press(key_Ctrl, key_KeypadZero)
-        time.sleep(0.1) 
-        keyboard.release(key_Ctrl, key_KeypadZero)
-        selectedInput = 10
-    elif not btn11.value:
-        keyboard.press(key_Ctrl, key_FThirteen)
-        time.sleep(0.1) 
-        keyboard.release(key_Ctrl, key_FThirteen)
-        selectedInput = 11
-    elif not btn12.value:
-        keyboard.press(key_Ctrl, key_FFourteen)
-        time.sleep(0.1) 
-        keyboard.release(key_Ctrl, key_FFourteen)
-        selectedInput = 12
-    else:
-        pass
+    if time.monotonic() - last_read > READ_TIME:
 
-    # sleep for debounce
-    time.sleep(0.1) 
+        # retrieve pot value
+        pot_val = potentiometer.value
+
+        # update volume based on pot level
+        last_position, current_volume = update_volume(
+            pot_val, last_position, current_volume
+        )
+
+        # update last_read to current time
+        last_read = time.monotonic()
+
+    # handle time.monotonic() overflow
+    if time.monotonic() < last_read:
+        last_read = time.monotonic()
+
+    for i, btn_action in enumerate(btn_actions):
+
+        # check if button is pressed but make sure it is not held down
+        if not btn_action["button"].value and not btn_action["held"]:
+
+            # print the name of the command for debug purposes
+            print(btn_action["name"])
+
+            if btn_action["type"] != "hold":
+                # send the keyboard commands
+                keyboard.press(*btn_action["keycode"])
+                time.sleep(0.001)
+                keyboard.release(*btn_action["keycode"])
+
+                # rotate led on active scene for scene type buttons
+                if btn_action["type"] == "scene":
+
+                    # light up the associated LED
+                    btn_action["led"].value = True
+
+                    # turn off other LEDs that may be on
+                    for j, alt_action in enumerate(btn_actions):
+                        if j != i:
+                            if alt_action["type"] == "scene":
+                                alt_action["led"].value = False
+
+                # toggle led for toggle type buttons
+                if btn_action["type"] == "toggle":
+                    btn_action["led"].value = not btn_action["led"].value
+
+                if btn_action["type"] == "press":
+                    btn_action["led"].value = True
+
+            elif btn_action["type"] == "hold":
+                keyboard.press(*btn_action["keycode"])
+                btn_action["led"].value = True
+
+            # set the held to True for debounce
+            btn_action["held"] = True
+
+        # remove the held indication if it is no longer held
+        elif btn_action["button"].value and btn_action["held"]:
+            btn_action["held"] = False
+
+            if btn_action["type"] == "hold":
+                keyboard.release(*btn_action["keycode"])
+                btn_action["led"].value = False
+
+            if btn_action["type"] == "press":
+                btn_action["led"].value = False
+
+        elif not btn_action["button"].value and btn_action["held"]:
+            if btn_action["type"] == "hold":
+                print(btn_action["name"])
