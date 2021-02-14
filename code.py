@@ -1,9 +1,8 @@
-
 # SPDX-FileCopyrightText: 2021 John Furcean
 # SPDX-License-Identifier: MIT
 
-# Modified from Pete Gallagher 2021 
-# Raspberry Pi Pico Producer 
+# Modified from Pete Gallagher 2021
+# Raspberry Pi Pico Producer
 # Twitter:  https://www.twitter.com/pete_codes
 # Blog:     https://www.petecodes.co.uk
 
@@ -18,45 +17,47 @@ from adafruit_hid.keycode import Keycode
 from adafruit_hid.consumer_control_code import ConsumerControlCode
 from adafruit_hid.consumer_control import ConsumerControl
 
-READ_TIME = .01
-
-def map_function(x, in_min, in_max, out_min, out_max):
-
-  return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+READ_TIME = 0.01
 
 
-def update_volume(pot_val, last_position=0, current_volume = 0):
-        position = int(map_function(pot_val, 200, 65520, 0, 32))
+def map_range(x, in_min, in_max, out_min, out_max):
 
-        if abs(position - last_position) > 1:
-            last_position = position
-            if current_volume < position:
-                while current_volume < position:
-                    # Raise volume.
-                    print("Volume Up!")
-                    consumer_control.send(ConsumerControlCode.VOLUME_INCREMENT)
-                    current_volume+= 2
-                    print(pot_val)
-            elif current_volume > position:
-                while current_volume > position:
-                    # Lower volume.
-                    print("Volume Down!")
-                    consumer_control.send(ConsumerControlCode.VOLUME_DECREMENT)
-                    current_volume -= 2
-                    print(pot_val)
+    return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min
 
-        return last_position, current_volume
 
-# initialize hid device as consumer control 
+def update_volume(pot_val, last_position=0, current_volume=0):
+    position = int(map_range(pot_val, 200, 65520, 0, 32))
+
+    if abs(position - last_position) > 1:
+        last_position = position
+        if current_volume < position:
+            while current_volume < position:
+                # Raise volume.
+                print("Volume Up!")
+                consumer_control.send(ConsumerControlCode.VOLUME_INCREMENT)
+                current_volume += 2
+                print(pot_val)
+        elif current_volume > position:
+            while current_volume > position:
+                # Lower volume.
+                print("Volume Down!")
+                consumer_control.send(ConsumerControlCode.VOLUME_DECREMENT)
+                current_volume -= 2
+                print(pot_val)
+
+    return last_position, current_volume
+
+
+# initialize hid device as consumer control
 consumer_control = ConsumerControl(usb_hid.devices)
 
 # initialize potentiometer (pot) wiper connected to GP26_A0
-potentiometer = AnalogIn(board.GP26)  
+potentiometer = AnalogIn(board.GP26)
 
 # intialize the read time
 last_read = time.monotonic()
 
-# decrease volume all the way down 
+# decrease volume all the way down
 # this allows the volume to be set by the current value of the pot
 for i in range(32):
     consumer_control.send(ConsumerControlCode.VOLUME_DECREMENT)
@@ -73,12 +74,13 @@ last_position, current_volume = update_volume(pot_val, last_position, current_vo
 # Initialize Keybaord
 keyboard = Keyboard(usb_hid.devices)
 
-# Define HID Key Output Actions
-hid_actions = [
+# Define HID Button Output Actions
+# https://circuitpython.readthedocs.io/projects/hid/en/latest/api.html#adafruit-hid-keycode-keycode
+btn_actions = [
     {
         "name": "Scene 1",
         "held": False,
-        "keycode": (Keycode.ALT, Keycode.F1),
+        "keycode": (Keycode.SHIFT, Keycode.KEYPAD_ONE),
         "button": None,
         "led": None,
         "type": "scene",
@@ -86,7 +88,7 @@ hid_actions = [
     {
         "name": "Scene 2",
         "held": False,
-        "keycode": (Keycode.ALT, Keycode.F2),
+        "keycode": (Keycode.SHIFT, Keycode.KEYPAD_TWO),
         "button": None,
         "led": None,
         "type": "scene",
@@ -94,7 +96,7 @@ hid_actions = [
     {
         "name": "Scene 3",
         "held": False,
-        "keycode": (Keycode.ALT, Keycode.F3),
+        "keycode": (Keycode.SHIFT, Keycode.KEYPAD_THREE),
         "button": None,
         "led": None,
         "type": "scene",
@@ -102,7 +104,7 @@ hid_actions = [
     {
         "name": "Scene 4",
         "held": False,
-        "keycode": (Keycode.ALT, Keycode.F4),
+        "keycode": (Keycode.SHIFT, Keycode.KEYPAD_FOUR),
         "button": None,
         "led": None,
         "type": "scene",
@@ -110,7 +112,7 @@ hid_actions = [
     {
         "name": "Scene 5",
         "held": False,
-        "keycode": (Keycode.ALT, Keycode.F5),
+        "keycode": (Keycode.SHIFT, Keycode.KEYPAD_FIVE),
         "button": None,
         "led": None,
         "type": "scene",
@@ -118,7 +120,7 @@ hid_actions = [
     {
         "name": "Scene 6",
         "held": False,
-        "keycode": (Keycode.ALT, Keycode.F6),
+        "keycode": (Keycode.SHIFT, Keycode.KEYPAD_SIX),
         "button": None,
         "led": None,
         "type": "scene",
@@ -126,45 +128,44 @@ hid_actions = [
     {
         "name": "Scene 7",
         "held": False,
-        "keycode": (Keycode.ALT, Keycode.F7),
+        "keycode": (Keycode.SHIFT, Keycode.KEYPAD_SEVEN),
         "button": None,
         "led": None,
         "type": "scene",
     },
     {
-        "name": "Scene 8",
+        "name": "Page UP",
         "held": False,
-        "keycode": (Keycode.ALT, Keycode.F8),
+        "keycode": (Keycode.PAGE_UP,),
         "button": None,
         "led": None,
-        "type": "scene",
+        "type": "hold",
     },
     {
-        "name": "Scene 9",
+        "name": "Hold Page Down",
         "held": False,
-        "keycode": (Keycode.ALT, Keycode.F9),
+        "keycode": (Keycode.PAGE_DOWN,),
         "button": None,
         "led": None,
-        "type": "scene",
+        "type": "hold",
     },
     {
-        "name": "Press ",
+        "name": "Press Mute Teams",
         "held": False,
-        "keycode": (Keycode.ALT, Keycode.F10),
+        "keycode": (Keycode.COMMAND, Keycode.SHIFT, Keycode.M),
         "button": None,
         "led": None,
         "type": "press",
     },
     {
-        "name": "Toggle Mute",
+        "name": "Toggle Mute Zoom",
         "held": False,
-        "keycode": (Keycode.ALT, Keycode.F11),
+        "keycode": (Keycode.COMMAND, Keycode.SHIFT, Keycode.A),
         "button": None,
         "led": None,
         "type": "toggle",
     },
 ]
-
 
 
 # Define button pins
@@ -198,32 +199,39 @@ led_pins = [
 ]
 
 # Setup all Buttons as Inputs with PullUps
-# Setup all LEDs
-for i in range(len(btn_pins)):
-    button = DigitalInOut(btn_pins[i])
+# Setup all LEDs as Outputs
+for i, btn_pin in enumerate(btn_pins):
+    button = DigitalInOut(btn_pin)
     button.direction = Direction.INPUT
     button.pull = Pull.UP
-    hid_actions[i]["button"] = button
+    btn_actions[i]["button"] = button
 
     led = DigitalInOut(led_pins[i])
     led.direction = Direction.OUTPUT
-    hid_actions[i]["led"] = led
-    hid_actions[i]["led"].value = True
-    time.sleep(.1)
+    btn_actions[i]["led"] = led
 
-for i in range(len(led_pins)):
-    time.sleep(.1)
-    hid_actions[i]["led"].value = False
+    # snake animation LEDs turning on
+    btn_actions[i]["led"].value = True
+    time.sleep(0.1)
 
+# snake animation LEDs turning off
+for btn_action in btn_actions:
+    time.sleep(0.1)
+    btn_action["led"].value = False
 
-print(hid_actions)
 
 # Loop around and check for key presses
 while True:
 
     if time.monotonic() - last_read > READ_TIME:
+
+        # retrieve pot value
         pot_val = potentiometer.value
-        last_position, current_volume = update_volume(pot_val, last_position, current_volume)
+
+        # update volume based on pot level
+        last_position, current_volume = update_volume(
+            pot_val, last_position, current_volume
+        )
 
         # update last_read to current time
         last_read = time.monotonic()
@@ -232,57 +240,57 @@ while True:
     if time.monotonic() < last_read:
         last_read = time.monotonic()
 
-
-    for i in range(len(hid_actions)):
+    for i, btn_action in enumerate(btn_actions):
 
         # check if button is pressed but make sure it is not held down
-        if not hid_actions[i]["button"].value and not hid_actions[i]["held"]:
+        if not btn_action["button"].value and not btn_action["held"]:
 
             # print the name of the command for debug purposes
-            print(hid_actions[i]["name"])
+            print(btn_action["name"])
 
-
-            if hid_actions[i]["type"] == "scene" or hid_actions[i]["type"] == "toggle":
+            if btn_action["type"] != "hold":
                 # send the keyboard commands
-                keyboard.press(*hid_actions[i]["keycode"])
+                keyboard.press(*btn_action["keycode"])
                 time.sleep(0.001)
-                keyboard.release(*hid_actions[i]["keycode"])
-
+                keyboard.release(*btn_action["keycode"])
 
                 # rotate led on active scene for scene type buttons
-                if hid_actions[i]["type"] == "scene":
-                    print("here")
+                if btn_action["type"] == "scene":
+
                     # light up the associated LED
-                    hid_actions[i]["led"].value = True
+                    btn_action["led"].value = True
 
                     # turn off other LEDs that may be on
-                    for j in range(len(hid_actions)):
+                    for j, alt_action in enumerate(btn_actions):
                         if j != i:
-                            if hid_actions[j]["type"] == "scene":
-                                hid_actions[j]["led"].value = False
+                            if alt_action["type"] == "scene":
+                                alt_action["led"].value = False
 
                 # toggle led for toggle type buttons
-                if hid_actions[i]["type"] == "toggle":
-                    hid_actions[i]["led"].value = not hid_actions[i]["led"].value
+                if btn_action["type"] == "toggle":
+                    btn_action["led"].value = not btn_action["led"].value
 
-            if hid_actions[i]["type"] == "press":
-                keyboard.press(*hid_actions[i]["keycode"])
-                hid_actions[i]["led"].value = True
+                if btn_action["type"] == "press":
+                    btn_action["led"].value = True
+
+            elif btn_action["type"] == "hold":
+                keyboard.press(*btn_action["keycode"])
+                btn_action["led"].value = True
 
             # set the held to True for debounce
-            hid_actions[i]["held"] = True
+            btn_action["held"] = True
 
         # remove the held indication if it is no longer held
-        elif hid_actions[i]["button"].value and hid_actions[i]["held"]:
-            hid_actions[i]["held"] = False
+        elif btn_action["button"].value and btn_action["held"]:
+            btn_action["held"] = False
 
-            if hid_actions[i]["type"] == "press":
-                keyboard.release(*hid_actions[i]["keycode"])
-                hid_actions[i]["led"].value = False
+            if btn_action["type"] == "hold":
+                keyboard.release(*btn_action["keycode"])
+                btn_action["led"].value = False
 
-        elif not hid_actions[i]["button"].value and hid_actions[i]["held"]:
-            if hid_actions[i]["type"] == "press":
-                print(hid_actions[i]["name"])
+            if btn_action["type"] == "press":
+                btn_action["led"].value = False
 
-
-
+        elif not btn_action["button"].value and btn_action["held"]:
+            if btn_action["type"] == "hold":
+                print(btn_action["name"])
