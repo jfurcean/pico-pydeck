@@ -80,7 +80,7 @@ btn_actions = [
     {
         "name": "Scene 1",
         "held": False,
-        "keycode": (Keycode.SHIFT, Keycode.KEYPAD_ONE),
+        "keycode": (Keycode.ALT, Keycode.F1),
         "button": None,
         "led": None,
         "type": "scene",
@@ -88,7 +88,7 @@ btn_actions = [
     {
         "name": "Scene 2",
         "held": False,
-        "keycode": (Keycode.SHIFT, Keycode.KEYPAD_TWO),
+        "keycode": (Keycode.ALT, Keycode.F2),
         "button": None,
         "led": None,
         "type": "scene",
@@ -96,7 +96,7 @@ btn_actions = [
     {
         "name": "Scene 3",
         "held": False,
-        "keycode": (Keycode.SHIFT, Keycode.KEYPAD_THREE),
+        "keycode": (Keycode.ALT, Keycode.F3),
         "button": None,
         "led": None,
         "type": "scene",
@@ -104,7 +104,7 @@ btn_actions = [
     {
         "name": "Scene 4",
         "held": False,
-        "keycode": (Keycode.SHIFT, Keycode.KEYPAD_FOUR),
+        "keycode": (Keycode.ALT, Keycode.F4),
         "button": None,
         "led": None,
         "type": "scene",
@@ -112,7 +112,7 @@ btn_actions = [
     {
         "name": "Scene 5",
         "held": False,
-        "keycode": (Keycode.SHIFT, Keycode.KEYPAD_FIVE),
+        "keycode": (Keycode.ALT, Keycode.F5),
         "button": None,
         "led": None,
         "type": "scene",
@@ -120,7 +120,7 @@ btn_actions = [
     {
         "name": "Scene 6",
         "held": False,
-        "keycode": (Keycode.SHIFT, Keycode.KEYPAD_SIX),
+        "keycode": (Keycode.ALT, Keycode.F6),
         "button": None,
         "led": None,
         "type": "scene",
@@ -128,7 +128,7 @@ btn_actions = [
     {
         "name": "Scene 7",
         "held": False,
-        "keycode": (Keycode.SHIFT, Keycode.KEYPAD_SEVEN),
+        "keycode": (Keycode.ALT, Keycode.F7),
         "button": None,
         "led": None,
         "type": "scene",
